@@ -6,7 +6,7 @@ import plotly.express as px
 # Load data
 df = pd.read_csv("data/insurance.data.aggregated.csv")
 
-# Set page configuration
+# Title
 st.set_page_config(page_title="Insurance Dashboard", layout="wide")
 st.title("💼 Insurance Website Analytics Dashboard")
 
@@ -29,21 +29,17 @@ filtered_df = df[
     (df["Device Category"].isin(selected_device))
 ]
 
-# KPIs
+# Display KPIs
 st.header("📊 Key Metrics")
+
 col1, col2, col3 = st.columns(3)
 col1.metric("👥 Total Users", int(filtered_df["Users"].sum()))
 col2.metric("📄 Total Quotes", int(filtered_df["TotalNumberOfInsuranceQuotes"].sum()))
 col3.metric("✅ Policies Purchased", int(filtered_df["TotalNumberOfInsurancePoliciesPurchaed"].sum()))
-col4, col5 = st.columns(2)
-col4.metric("💰 Total Revenue (£)", f"{filtered_df['Revenue'].sum():,.2f}")
-col5.metric("⏱️ Avg. Session Duration (s)", f"{filtered_df['Avg. Session Duration'].mean():.1f}")
 
-# Pie Chart
-st.header("🥧 Users by Marketing Channel")
-pie_data = filtered_df.groupby("Marketing Channel")["Users"].sum().reset_index()
-pie_fig = px.pie(pie_data, values="Users", names="Marketing Channel", title="User Share by Marketing Channel")
-st.plotly_chart(pie_fig, use_container_width=True)
+col4, col5 = st.columns(2)
+col4.metric("💰 Revenue (£)", f"{filtered_df['Revenue'].sum():,.2f}")
+col5.metric("⏱️ Avg. Session Duration (s)", f"{filtered_df['Avg. Session Duration'].mean():.1f}")
 
 # Bar Chart: Users by Marketing Channel
 st.header("📈 User Distribution by Marketing Channel")
@@ -63,20 +59,11 @@ device_chart = alt.Chart(filtered_df).mark_bar().encode(
 )
 st.altair_chart(device_chart, use_container_width=True)
 
-# Bubble Chart: Pages vs Duration
-st.header("🔘 Bubble Chart: Pages/Session vs Session Duration")
-bubble_df = filtered_df.dropna(subset=["Pages / Session", "Avg. Session Duration", "Users"])
-bubble_fig = px.scatter(
-    bubble_df,
-    x="Pages / Session",
-    y="Avg. Session Duration",
-    size="Users",
-    color="Marketing Channel",
-    hover_name="Device Category",
-    title="User Engagement Overview",
-    size_max=60
-)
-st.plotly_chart(bubble_fig, use_container_width=True)
+# Pie Chart: Users by Marketing Channel
+st.header("🥧 Pie Chart: Users by Marketing Channel")
+pie_data = filtered_df.groupby("Marketing Channel")["Users"].sum().reset_index()
+pie_fig = px.pie(pie_data, names="Marketing Channel", values="Users", title="User Share by Channel")
+st.plotly_chart(pie_fig, use_container_width=True)
 
 # Line Chart: Avg. Session Duration and Pages/Session
 st.header("📉 Session Engagement by Channel")
@@ -92,4 +79,4 @@ st.plotly_chart(line_fig, use_container_width=True)
 
 # Footer
 st.markdown("---")
-st.caption("📊 Dashboard by **Michael Gallardo** | Powered by Streamlit + Altair + Plotly + Pandas")
+st.caption("📊 Dashboard created by **Michael Gallardo** | Powered by Streamlit + Altair + Plotly + Pandas")
