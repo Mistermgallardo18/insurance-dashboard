@@ -1,13 +1,40 @@
+import streamlit as st
 import pandas as pd
 import altair as alt
 import plotly.express as px
-import streamlit as st
 
 # Load data
 df = pd.read_csv("data/insurance.data.aggregated.csv")
 
-# Page config
-st.set_page_config(page_title="Insurance Dashboard", layout="wide")
+# Set page config and style
+st.set_page_config(page_title="Insurance Analytics Dashboard", layout="wide")
+
+# Background and text color styling
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #0c1e3c;
+        color: white;
+    }
+    .css-18e3th9 {
+        background-color: #0c1e3c;
+    }
+    .css-1d391kg {
+        color: white;
+    }
+    .st-bb {
+        color: white;
+    }
+    .st-cw {
+        background-color: #0c1e3c;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Title
 st.title("💼 Insurance Website Analytics Dashboard")
 
 # Sidebar filters
@@ -29,66 +56,76 @@ filtered_df = df[
     (df["Device Category"].isin(selected_device))
 ]
 
-# KPIs
+# Display KPIs
 st.header("📊 Key Metrics")
+
 col1, col2, col3 = st.columns(3)
 col1.metric("👥 Total Users", int(filtered_df["Users"].sum()))
 col2.metric("📄 Total Quotes", int(filtered_df["TotalNumberOfInsuranceQuotes"].sum()))
 col3.metric("✅ Policies Purchased", int(filtered_df["TotalNumberOfInsurancePoliciesPurchaed"].sum()))
 
 col4, col5 = st.columns(2)
-col4.metric("💰 Revenue (£)", f"{filtered_df['Revenue'].sum():,.2f}")
+col4.metric("💰 Total Revenue (£)", f"{filtered_df['Revenue'].sum():,.2f}")
 col5.metric("⏱️ Avg. Session Duration (s)", f"{filtered_df['Avg. Session Duration'].mean():.1f}")
 
-# Row 1 - Marketing Channel: Bar + Pie
-st.markdown("## 📊 Channel Overview")
-left_col, right_col = st.columns(2)
-with left_col:
-    st.subheader("📈 Users by Marketing Channel")
-    channel_chart = alt.Chart(filtered_df).mark_bar().encode(
-        x=alt.X("Marketing Channel:N", sort='-y'),
-        y="Users:Q",
-        color="Marketing Channel:N"
-    ).properties(width=350)
-    st.altair_chart(channel_chart, use_container_width=True)
-with right_col:
-    st.subheader("🥧 User Share by Channel")
-    pie_data = filtered_df.groupby("Marketing Channel")["Users"].sum().reset_index()
-    pie_fig = px.pie(pie_data, names="Marketing Channel", values="Users")
-    st.plotly_chart(pie_fig, use_container_width=True)
+# Charts: Device & Session Engagement
+st.header("📱 Device & Engagement")
+col6, col7 = st.columns(2)
 
-# Row 2 - Device Category & Session Engagement
-st.markdown("## 📱 Device & Engagement")
-col3, col4 = st.columns(2)
-with col3:
-    st.subheader("📱 Users by Device")
-    device_chart = alt.Chart(filtered_df).mark_bar().encode(
-        x="Device Category:N",
-        y="Users:Q",
-        color="Device Category:N"
+with col6:
+    st.subheader("📊 Users by Device")
+    device_chart = px.bar(
+        filtered_df,
+        x="Device Category",
+        y="Users",
+        color="Device Category",
+        title="Users by Device Category"
     )
-    st.altair_chart(device_chart, use_container_width=True)
-with col4:
-    st.subheader("📉 Session Engagement by Channel")
-   # Prepare data
-engagement_data = filtered_df.groupby("Marketing Channel")[["Pages / Session", "Avg. Session Duration"]].mean().reset_index()
+    st.plotly_chart(device_chart, use_container_width=True)
 
-# Melt for grouped bar chart
-engagement_melted = engagement_data.melt(id_vars="Marketing Channel", 
-                                          value_vars=["Pages / Session", "Avg. Session Duration"],
-                                          var_name="Metric", value_name="Value")
+with col7:
+    st.subheader("📊 Session Engagement by Channel")
+    engagement_data = filtered_df.groupby("Marketing Channel")[["Pages / Session", "Avg. Session Duration"]].mean().reset_index()
+    engagement_melted = engagement_data.melt(
+        id_vars="Marketing Channel",
+        value_vars=["Pages / Session", "Avg. Session Duration"],
+        var_name="Metric",
+        value_name="Value"
+    )
+    engagement_chart = px.bar(
+        engagement_melted,
+        x="Marketing Channel",
+        y="Value",
+        color="Metric",
+        barmode="group",
+        title="Avg Pages/Session & Duration by Channel"
+    )
+    st.plotly_chart(engagement_chart, use_container_width=True)
 
-# Plotly grouped bar chart
-engagement_fig = px.bar(
-    engagement_melted,
-    x="Marketing Channel",
-    y="Value",
-    color="Metric",
-    barmode="group",
-    title="Average Pages/Session and Session Duration by Channel"
+# Pie Chart: Users by Marketing Channel
+st.header("🥧 Users Distribution by Channel")
+pie_data = filtered_df.groupby("Marketing Channel")["Users"].sum().reset_index()
+pie_chart = px.pie(
+    pie_data,
+    names="Marketing Channel",
+    values="Users",
+    title="User Share by Marketing Channel"
 )
+st.plotly_chart(pie_chart, use_container_width=True)
 
-st.plotly_chart(engagement_fig, use_container_width=True)
+# Bubble Chart: Users vs Quotes (sized by Revenue)
+st.header("🫧 Users vs Quotes (Bubble by Revenue)")
+bubble_chart = px.scatter(
+    filtered_df,
+    x="Users",
+    y="TotalNumberOfInsuranceQuotes",
+    size="Revenue",
+    color="Marketing Channel",
+    hover_name="Device Category",
+    size_max=60,
+    title="Users vs Quotes by Revenue and Channel"
+)
+st.plotly_chart(bubble_chart, use_container_width=True)
 
 # Footer
 st.markdown("---")
