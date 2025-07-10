@@ -1,3 +1,7 @@
+import streamlit as st
+import pandas as pd
+import altair as alt
+import plotly.express as px
 # Pie Chart: Users by Marketing Channel
 st.header("🥧 Pie Chart: Users by Marketing Channel")
 pie_data = filtered_df.groupby("Marketing Channel")["Users"].sum().reset_index()
