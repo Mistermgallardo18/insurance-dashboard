@@ -1,68 +1,94 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-from numerize.numerize import numerize
-
-# Page config
-st.set_page_config(page_title="Insurance Dashboard", page_icon="📊", layout="wide")
+import altair as alt
 
 # Load data
-@st.cache_data
-def load_data():
-    df = pd.read_csv("data/insurance.data.aggregated.csv")
-    return df
+df = pd.read_csv("data/insurance.data.aggregated.csv")
 
-df = load_data()
+# Title
+st.title("💼 Insurance Website Analytics Dashboard")
 
-# Header
-st.markdown("<h1 style='text-align: center; color: #fff;'>🏢 Insurance Analytics Dashboard</h1>", unsafe_allow_html=True)
-st.markdown("###")
-
-# Sidebar
-with st.sidebar:
-    st.image("data/logo.png", width=150)
-    st.markdown("### Please filter", unsafe_allow_html=True)
-
-    region = st.multiselect("Select Region", df["Region"].unique(), default=df["Region"].unique())
-    location = st.multiselect("Select Location", df["Location"].unique(), default=df["Location"].unique())
-    construction = st.multiselect("Select Construction", df["Construction"].unique(), default=df["Construction"].unique())
-
-# Filtered Data
-filtered_df = df.query("Region == @region & Location == @location & Construction == @construction")
-
-# KPIs
-total_investment = filtered_df['Investment'].sum()
-most_freq_investment = filtered_df['Investment'].mode()[0]
-avg_investment = filtered_df['Investment'].mean()
-median_investment = filtered_df['Investment'].median()
-total_rating = filtered_df['Rating'].sum()
-
-kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
-kpi1.metric("📌 Total investment", f"{total_investment:,.0f} KES")
-kpi2.metric("📌 Most frequent investment", f"{most_freq_investment:,.0f} KES")
-kpi3.metric("📌 Average investment", f"{avg_investment:,.0f} KES")
-kpi4.metric("📌 Central investment", f"{median_investment:,.0f} KES")
-kpi5.metric("📌 Rating", numerize(total_rating))
-
-st.markdown("---")
-
-# Graphs
-left, right = st.columns(2)
-
-# Line chart - Investment by State
-investment_by_state = filtered_df.groupby("State")[["Investment"]].sum().reset_index()
-line_chart = px.line(investment_by_state, x="State", y="Investment", markers=True, title="📈 Investment by State")
-line_chart.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)')
-left.plotly_chart(line_chart, use_container_width=True)
-
-# Bar chart - Investment by Business Type
-business_chart = (
-    filtered_df.groupby("BusinessType")[["Investment"]].sum().sort_values("Investment", ascending=False).reset_index()
+# Sidebar filters
+st.sidebar.header("📌 Filters")
+selected_channel = st.sidebar.multiselect(
+    "Marketing Channel",
+    df["Marketing Channel"].dropna().unique(),
+    default=df["Marketing Channel"].dropna().unique()
 )
-bar_chart = px.bar(business_chart, x="Investment", y="BusinessType", orientation='h', title="🏢 Investment by Business Type")
-bar_chart.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)')
-right.plotly_chart(bar_chart, use_container_width=True)
+selected_device = st.sidebar.multiselect(
+    "Device Category",
+    df["Device Category"].dropna().unique(),
+    default=df["Device Category"].dropna().unique()
+)
 
-# Data Table (optional)
-with st.expander("📋 Show raw data"):
-    st.dataframe(filtered_df)
+# Filter data
+filtered_df = df[
+    (df["Marketing Channel"].isin(selected_channel)) &
+    (df["Device Category"].isin(selected_device))
+]
+
+# Display KPIs
+st.header("📊 Key Metrics")
+
+col1, col2, col3 = st.columns(3)
+col1.metric("👥 Total Users", int(filtered_df["Users"].sum()))
+col2.metric("📄 Total Quotes", int(filtered_df["TotalNumberOfInsuranceQuotes"].sum()))
+col3.metric("✅ Total Policies Purchased", int(filtered_df["TotalNumberOfInsurancePoliciesPurchaed"].sum()))
+
+col4, col5 = st.columns(2)
+col4.metric("💰 Total Revenue (£)", f"{filtered_df['Revenue'].sum():,.2f}")
+col5.metric("⏱️ Avg. Session Duration (s)", f"{filtered_df['Avg. Session Duration'].mean():.1f}")
+
+# Bar Chart: Users by Marketing Channel
+st.header("📈 User Distribution by Marketing Channel")
+channel_chart = alt.Chart(filtered_df).mark_bar().encode(
+    x=alt.X("Marketing Channel:N", sort='-y'),
+    y="Users:Q",
+    color="Marketing Channel:N"
+).properties(width=700)
+st.altair_chart(channel_chart, use_container_width=True)
+
+# Bar Chart: Users by Device
+st.header("📱 Device Type Comparison")
+device_chart = alt.Chart(filtered_df).mark_bar().encode(
+    x="Device Category:N",
+    y="Users:Q",
+    color="Device Category:N"
+)
+st.altair_chart(device_chart, use_container_width=True)
+
+# Session Chart Preview
+st.subheader("📋 Data preview for session chart")
+st.write(filtered_df[["Pages / Session", "Avg. Session Duration", "Marketing Channel"]].dropna())
+
+st.write("🧮 Column types:")
+st.write(filtered_df[["Pages / Session", "Avg. Session Duration"]].dtypes)
+
+# Scatter Plot: Session Engagement Overview
+st.header("🔍 Session Engagement Overview")
+
+# Prepare data
+session_df = filtered_df[[
+    "Pages / Session",
+    "Avg. Session Duration",
+    "Marketing Channel",
+    "Device Category",
+    "Users"
+]].copy().dropna()
+
+if session_df.empty:
+    st.warning("⚠️ No data available for the current filter selection.")
+else:
+    session_chart = alt.Chart(session_df).mark_circle(size=60).encode(
+        x=alt.X("Pages / Session", title="Pages per Session"),
+        y=alt.Y("Avg. Session Duration", title="Avg. Session Duration (s)"),
+        color=alt.Color("Marketing Channel", title="Marketing Channel"),
+        size=alt.Size("Users", title="Users", scale=alt.Scale(range=[10, 500])),
+        tooltip=["Marketing Channel", "Device Category", "Users", "Pages / Session", "Avg. Session Duration"]
+    ).interactive().properties(width=700, height=400)
+
+    st.altair_chart(session_chart, use_container_width=True)
+
+# Footer
+st.markdown("---")
+st.caption("📊 Dashboard created by **Michael Gallardo** | Powered by Streamlit + Altair + Pandas")
