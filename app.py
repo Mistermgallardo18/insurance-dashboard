@@ -8,42 +8,6 @@ df = pd.read_csv("data/insurance.data.aggregated.csv")
 
 # Page config
 st.set_page_config(page_title="Insurance Dashboard", layout="wide")
-# Custom CSS for dark navy theme
-st.markdown("""
-    <style>
-    body {
-        background-color: #0f1c2e;
-        color: #ffffff;
-    }
-    .stApp {
-        background-color: #0f1c2e;
-        color: #ffffff;
-    }
-    .css-1v0mbdj, .css-1d391kg, .css-hxt7ib {
-        background-color: #0f1c2e !important;
-        color: #ffffff !important;
-    }
-    .st-bx, .st-cz {
-        color: white !important;
-    }
-    .st-af {
-        background-color: #1a2b47 !important;
-    }
-    .st-b8 {
-        color: #ffffff !important;
-    }
-    .stMetric label {
-        color: #cccccc !important;
-    }
-    .stMetric div {
-        color: white !important;
-    }
-    h1, h2, h3, h4, h5, h6, p {
-        color: white !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 st.title("💼 Insurance Website Analytics Dashboard")
 
 # Sidebar filters
