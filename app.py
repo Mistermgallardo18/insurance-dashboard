@@ -70,15 +70,25 @@ with col3:
     st.altair_chart(device_chart, use_container_width=True)
 with col4:
     st.subheader("📉 Session Engagement by Channel")
-    line_data = filtered_df.groupby("Marketing Channel")[["Pages / Session", "Avg. Session Duration"]].mean().reset_index()
-    line_fig = px.line(
-        line_data,
-        x="Marketing Channel",
-        y=["Pages / Session", "Avg. Session Duration"],
-        markers=True,
-        title="Average Session Metrics by Marketing Channel"
-    )
-    st.plotly_chart(line_fig, use_container_width=True)
+   # Prepare data
+engagement_data = filtered_df.groupby("Marketing Channel")[["Pages / Session", "Avg. Session Duration"]].mean().reset_index()
+
+# Melt for grouped bar chart
+engagement_melted = engagement_data.melt(id_vars="Marketing Channel", 
+                                          value_vars=["Pages / Session", "Avg. Session Duration"],
+                                          var_name="Metric", value_name="Value")
+
+# Plotly grouped bar chart
+engagement_fig = px.bar(
+    engagement_melted,
+    x="Marketing Channel",
+    y="Value",
+    color="Metric",
+    barmode="group",
+    title="Average Pages/Session and Session Duration by Channel"
+)
+
+st.plotly_chart(engagement_fig, use_container_width=True)
 
 # Footer
 st.markdown("---")
